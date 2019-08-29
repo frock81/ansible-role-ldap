@@ -1,0 +1,14 @@
+---
+- name: set indexes values facts
+  set_fact:
+    openldap_db_indexes_values: >
+      {{ openldap_db_indexes_values
+      | default([]) + [item.attrs + ' ' + item.types] }}
+  loop: "{{ openldap_db_indexes }}"
+
+- name: set indexes
+  ldap_attr:
+    dn: "{{ openldap_basedit_db_dn }}"
+    name: olcDbIndex
+    values: "{{ openldap_db_indexes_values }}"
+    state: exact

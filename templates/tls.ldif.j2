@@ -1,0 +1,11 @@
+dn: {{ openldap_configdit_dn }}
+changetype: modify
+add: olcTLSCACertificateFile
+olcTLSCACertificateFile: {{ openldap_tls_certs_dir }}/{{ openldap_tls_ca_cert_file }}
+-
+add: olcTLSCertificateFile
+olcTLSCertificateFile: {{ openldap_tls_certs_dir }}/{{ openldap_tls_cert_file }}
+-
+add: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: {{ openldap_tls_keys_dir }}/{{ openldap_tls_key_filename }}
+

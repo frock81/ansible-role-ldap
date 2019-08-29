@@ -1,0 +1,57 @@
+---
+#-------------------------------------------------------------------------------
+# SyncProv Overlay
+#-------------------------------------------------------------------------------
+# Doing a search because of problems with indexes
+# @see https://github.com/ansible/ansible/issues/22287
+# TODO: evaluate to use the same approach as sync repl, inserting {x} instead of
+# searching for entry (see below).
+- name: search for syncprov overlay
+  shell: "ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// \
+    -s one -b \"{{ item.openldap_repl_db_dn }}\" dn \
+    | grep \"{{ openldap_repl_syncprov_attr }}\
+    ={[0-9]\\+}{{ openldap_repl_module_value }}\""
+  register: result
+  ignore_errors: yes
+  changed_when: false
+
+- name: add syncprov overlay to replicated db
+  ldap_entry:
+    dn: "{{ openldap_repl_syncprov_attr }}={{ openldap_repl_module_value }}\
+      ,{{ item.openldap_repl_db_dn }}"
+    objectClass: "{{ openldap_repl_syncprov_objectclasses }}"
+  when: result.rc != 0
+
+#-------------------------------------------------------------------------------
+# Sync Repl
+#-------------------------------------------------------------------------------
+- name: search for syncrepl
+  shell: >-
+    ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:///
+    -s base -b "{{ item.openldap_repl_db_dn }}"
+    {{ openldap_repl_syncrepl_attr }}
+    | grep -i {{ openldap_repl_syncrepl_attr }}
+  register: result
+  ignore_errors: yes
+
+- block:
+    - set_fact:
+        openldap_repl_ldif_path: >-
+          {{ openldap_temp_dir }}/syncrepl{{ index }}.ldif
+
+    - name: template syncrepl ldif
+      template:
+        src: syncrepl.ldif.j2
+        dest: "{{ openldap_repl_ldif_path }}"
+
+    - name: syncrepl modify
+      command: >-
+        ldapmodify -Y EXTERNAL -H ldapi:///
+        -f {{ openldap_repl_ldif_path }}
+      ignore_errors: yes
+
+    - name: remove temporary file
+      file:
+        path: "{{ openldap_repl_ldif_path }}"
+        state: absent
+  when: result.rc != 0

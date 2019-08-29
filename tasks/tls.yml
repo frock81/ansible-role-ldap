@@ -1,0 +1,72 @@
+---
+#===============================================================================
+# TLS/SSL
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Files
+#-------------------------------------------------------------------------------
+- name: copy certificate files
+  copy:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ openldap_tls_certs_owner }}"
+    group: "{{ openldap_tls_certs_group }}"
+    mode: "{{ openldap_tls_certs_mode }}"
+  with_items:
+    - src: "{{ openldap_tls_ca_cert_file }}"
+      dest: "{{ openldap_tls_certs_dir }}"
+    - src: "{{ openldap_tls_cert_file }}"
+      dest: "{{ openldap_tls_certs_dir }}"
+
+- name: copy key content
+  copy:
+    content: "{{ openldap_tls_key_content }}"
+    dest: "{{ openldap_tls_keys_dir }}/{{ openldap_tls_key_filename }}"
+    owner: "{{ openldap_tls_key_owner }}"
+    group: "{{ openldap_tls_key_group }}"
+    mode: "{{ openldap_tls_key_mode }}"
+
+- name: add slapd user to private keys directory group
+  user:
+    name: "{{ openldap_slapd_user }}"
+    groups: "{{ openldap_tls_keys_dir_group }}"
+    append: yes
+
+#-------------------------------------------------------------------------------
+# Entries
+#-------------------------------------------------------------------------------
+- name: check TLS entries in config DIT
+  shell: >-
+    ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// 
+    -b "{{ openldap_configdit_dn }}"
+    "(&(olcTLSCACertificateFile=*)(olcTLSCertificateFile=*))"
+    | grep "dn: {{ openldap_configdit_dn }}"
+  register: result
+  ignore_errors: yes
+  changed_when: false
+
+- block:
+    # without it we receive an "Other error (80)"
+    - name: restart slapd
+      service:
+        name: slapd
+        state: restarted
+
+    - set_fact:
+        openldap_tls_ldif_path: >-
+          {{ openldap_temp_dir }}/{{ openldap_tls_template_ldif }}
+
+    - name: template tls ldif
+      template:
+        src: "{{ openldap_tls_template_ldif }}.j2"
+        dest: "{{ openldap_tls_ldif_path }}"
+
+    - name: modify config DIT to configure TLS/SSL
+      command: ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f {{ openldap_tls_ldif_path }}
+
+    - name: remove tls ldif
+      file:
+        path: "{{ openldap_tls_ldif_path }}"
+        state: absent
+  when: result.rc != 0

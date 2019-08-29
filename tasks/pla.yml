@@ -1,0 +1,15 @@
+---
+#===============================================================================
+# PhpLdapAdmin
+#===============================================================================
+- name: install PhpLdapAdmin packages
+  apt:
+    name: "{{ openldap_pla_pkgs }}"
+
+- name: PhpLdapAdmin template config file
+  template:
+    src: "{{ openldap_pla_config_src_file }}"
+    dest: "{{ openldap_pla_config_dest_file }}"
+    owner: "{{ openldap_pla_config_owner }}"
+    group: "{{ openldap_pla_config_group }}"
+    backup: "{{ openldap_pla_config_backup }}"

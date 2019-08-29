@@ -1,0 +1,11 @@
+# ANSIBLE GENERATED
+URI ldap://localhost:389
+BASE {{ openldap_basedit_dn }}
+BINDDN {{ openldap_basedit_admin_dn }}
+SIZELIMIT {{ openldap_ldap_conf_sizelimit }}
+TIMELIMIT {{ openldap_ldap_conf_timelimit }}
+TIMEOUT {{ openldap_ldap_conf_timeout }}
+{%  if  openldap_tls_enable %}
+TLS_CACERT {{ openldap_tls_certs_dir }}/{{ openldap_tls_ca_cert_file }}
+TLS_REQCERT {{ openldap_ldap_conf_reqcert }}
+{% endif %}

@@ -1,0 +1,15 @@
+dn: {{ item.openldap_repl_db_dn }}
+changetype: modify
+add: {{ openldap_repl_syncrepl_attr }}
+{% for server in openldap_repl_servers %}
+{{ openldap_repl_syncrepl_attr }}: rid={{ index }}{{ '%02d' | format(server.id) }} 
+ provider={{ server.uri }} 
+ binddn="{{ item.openldap_repl_admin_dn }}" 
+ bindmethod=simple 
+ credentials={{ item.openldap_repl_admin_pw }} 
+ searchbase="{{ item.openldap_repl_dn }}" 
+ type=refreshAndPersist retry="5 5 300 5" timeout=1
+{% endfor %}
+-
+add: olcMirrorMode
+olcMirrorMode: TRUE

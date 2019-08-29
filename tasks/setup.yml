@@ -1,0 +1,42 @@
+---
+#===============================================================================
+# Main Setup
+#===============================================================================
+- name: install role required packages
+  apt:
+    name: "{{ openldap_role_required_pkgs }}"
+
+- name: query selections for slapd
+  shell: debconf-get-selections | grep {{ item.question }} | awk '{print $4}'
+  with_items: "{{ openldap_slapd_config_items }}"
+  register: result
+  changed_when: false
+
+- name: set selections for slapd config
+  debconf:
+    name: slapd
+    question: "{{ item.item.question }}"
+    vtype: "{{ item.item.vtype }}"
+    value: "{{ item.item.value }}"
+  with_items: "{{ result.results }}"
+  when: item.stdout != item.item.value
+
+- name: install needed packages
+  apt:
+    name: "{{ openldap_install_pkgs }}"
+
+- name: slapd daemon options
+  template:
+    src: "{{  openldap_slapd_daemon_options_file_template }}"
+    dest: "{{ openldap_slapd_daemon_options_file_dest }}"
+    owner: "{{ openldap_slapd_daemon_options_file_owner }}"
+    group: "{{ openldap_slapd_daemon_options_file_group }}"
+    mode: "{{ openldap_slapd_daemon_options_file_mode }}"
+  notify: restart slapd service
+
+# In doubt about flushing handlers or call restart slapd specifically
+#   - flush: does more than needed but can be more economic
+#   - call: more adequate to porpouse but can be more difficult to understand
+#     and task can be called again.
+- name: flush handlers
+  meta: flush_handlers

@@ -1,0 +1,10 @@
+---
+#===============================================================================
+# Clean-up olcRootPW when enabled
+#===============================================================================
+- name: remove olcRootPW
+  ldap_attr:
+    dn: "{{ openldap_basedit_db_dn }}"
+    name: olcRootPW
+    values: []
+    state: exact

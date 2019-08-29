@@ -1,0 +1,12 @@
+---
+#===============================================================================
+# Ldap.conf
+#===============================================================================
+- name: template ldap.conf
+  template:
+    src: "{{ openldap_ldap_conf_file_template }}"
+    dest: "{{ openldap_ldap_conf_file_dest }}"
+    owner: "{{ openldap_ldap_conf_file_owner }}"
+    group: "{{ openldap_ldap_conf_file_group }}"
+    mode: "{{ openldap_ldap_conf_file_mode }}"
+  notify: restart slapd service

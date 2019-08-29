@@ -1,0 +1,49 @@
+---
+#===============================================================================
+# Seed
+#===============================================================================
+- name: set seed DN fact
+  set_fact:
+    openldap_seed_dn: >-
+      {{ openldap_seed_check_attr_name }}={{ openldap_seed_check_attr_value 
+      }},{{ openldap_basedit_dn }}
+
+- name: check seed entry
+  ldap_attr:
+    dn: "{{ openldap_seed_dn }}"
+    name: "{{ openldap_seed_check_attr_name }}"
+    values: "{{ openldap_seed_check_attr_value }}"
+    state: exact
+  register: result0
+  ignore_errors: yes
+  changed_when: false
+- name: copy ldif file to host
+  copy:
+    src: "{{ openldap_seed_ldif_file }}"
+    dest: "{{ openldap_seed_ldif_path }}"
+    mode: '0400' #may contain sensitive information?
+  when: result0.failed
+- name: do seed
+  shell: >
+    ldapadd -x -D "{{ openldap_basedit_admin_dn }}"
+    {{ openldap_seed_bind_pw }}
+    {{ openldap_seed_continue }}
+    {{ openldap_seed_skipped }}
+    {{ openldap_seed_file }}
+    {{ openldap_seed_verbose }}
+    {{ openldap_seed_tee }}
+  when: result0.failed
+  ignore_errors: "{{ openldap_seed_continue_on_errors }}"
+  register: result1
+- name: remove ldif file from host
+  file:
+    path: "{{ openldap_seed_ldif_path }}"
+    state: absent
+- name: seed info entry
+  ldap_entry:
+    dn: "{{ openldap_seed_dn }}"
+    objectClass: "{{ openldap_seed_check_oc }}"
+    attributes: "{{ openldap_seed_attributes }}"
+    bind_dn: "{{ openldap_basedit_admin_dn }}"
+    bind_pw: "{{ openldap_basedit_admin_password }}"
+  when: result1.changed

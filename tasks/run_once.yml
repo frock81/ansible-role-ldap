@@ -1,0 +1,15 @@
+---
+# Schemas
+- include_tasks: schemas.yml
+  with_items: "{{ openldap_schemas_add }}"
+  tags: openldap-schemas
+
+# DB indexes
+- import_tasks: indexes.yml
+  when: openldap_db_indexes | length > 0
+  tags: openldap-db_indexes
+
+# Seed
+- import_tasks: seed.yml
+  when: openldap_seed_enable
+  tags: openldap-seed

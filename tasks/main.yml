@@ -1,0 +1,46 @@
+---
+# tasks file for frock81.ldap
+
+- block:
+    # Main setup tasks
+    - import_tasks: setup.yml
+      tags: openldap-setup
+
+    # Ldap.conf
+    - import_tasks: ldap_conf.yml
+      when: openldap_ldap_conf_enable or openldap_repl_enable
+      tags: openldap-ldap_conf
+
+    # Administrator for Config DIT (cn=config, not to be confused with base DN 
+    # admin)
+    - import_tasks: configdit.yml
+      tags: openldap-configdit
+
+    # remove oclRootPW when enabled
+    - import_tasks: rootpw.yml
+      when: openldap_rootpw_remove
+      tags: openldap-rootpw
+
+    # TLS/SSL
+    - import_tasks: tls.yml
+      when: openldap_tls_enable
+      tags: openldap-tls
+
+    # Replication
+    - import_tasks: repl.yml
+      when: openldap_repl_enable
+      tags: openldap-repl
+
+    # When replication is enabled, some tasks are only allowed to run once.
+    # Kind a if else
+    - import_tasks: run_once.yml
+      when: openldap_repl_enable
+      run_once: yes
+    - import_tasks: run_once.yml
+      when: not openldap_repl_enable
+
+    # PhpLdapAdmin
+    - import_tasks: pla.yml
+      when: openldap_pla_enable
+      tags: openldap-pla
+  tags: openldap

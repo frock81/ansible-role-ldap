@@ -1,0 +1,69 @@
+---
+#===============================================================================
+# Replication
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# RootDN and RootPW
+#-------------------------------------------------------------------------------
+# RootDn and RootPw required for replication. If
+# `openldap_configdit_admin_enable` is true no action is needed. If not
+# must be setup. See also file `configdit.yml`.
+- import_tasks: root.yml
+  when: not openldap_configdit_admin_enable
+
+#-------------------------------------------------------------------------------
+# Server Id
+#-------------------------------------------------------------------------------
+# The manual says to add first only one server id and replace after.
+# Not doing this way here.
+# @see https://www.openldap.org/doc/admin24/replication.html
+# There may be problems using `present` instead of `exact` but we'll be
+# ignoring that for now.
+- name: add server id
+  ldap_attr:
+    dn: "{{ openldap_configdit_dn }}"
+    name: olcServerId
+    values: "{{ item.id }} {{ item.uri }}"
+    state: present
+  with_items: "{{ openldap_repl_servers }}"
+
+#-------------------------------------------------------------------------------
+# SyncProv Module
+#-------------------------------------------------------------------------------
+# Doing a search because of problems with indexes
+# @see https://github.com/ansible/ansible/issues/22287
+# TODO: evaluate to use the same approach as sync repl, inserting {x} instead of
+# searching for entry (see below).
+- name: search for syncprov module
+  shell: >-
+    ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:///
+    -s base -b "{{ openldap_repl_module_dn }}"
+    "{{ openldap_repl_module_attr }}"
+    | grep "{{ openldap_repl_module_value }}"
+  register: result
+  ignore_errors: yes
+  changed_when: false
+
+# This sets up syncrepl as a provider
+- name: enable syncprov module
+  ldap_attr:
+    dn: "{{ openldap_repl_module_dn }}"
+    name: "{{ openldap_repl_module_attr }}"
+    values: "{{ openldap_repl_module_value }}"
+    state: present
+  when: result.rc != 0
+
+- name: include syncprov overlay and syncrepl attribute related tasks
+  include_tasks: repl_db.yml
+  loop:
+    - openldap_repl_db_dn: "{{ openldap_configdit_db_dn }}"
+      openldap_repl_admin_dn: "{{ openldap_configdit_admin_dn }}"
+      openldap_repl_admin_pw: "{{ openldap_configdit_admin_password }}"
+      openldap_repl_dn: "{{ openldap_configdit_dn }}"
+    - openldap_repl_db_dn: "{{ openldap_basedit_db_dn }}"
+      openldap_repl_admin_dn: "{{ openldap_basedit_admin_dn }}"
+      openldap_repl_admin_pw: "{{ openldap_basedit_admin_password }}"
+      openldap_repl_dn: "{{ openldap_basedit_dn }}"
+  loop_control:
+    index_var: index

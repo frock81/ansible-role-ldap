@@ -1,0 +1,7 @@
+---
+# handlers file for frock81.ldap
+
+- name: restart slapd service
+  service:
+    name: slapd
+    state: restarted

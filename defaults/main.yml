@@ -1,0 +1,211 @@
+---
+# defaults file for frock81.ldap
+
+#===============================================================================
+# Slapd Settings
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Debconf
+#-------------------------------------------------------------------------------
+# Admin password.
+openldap_slapd_admin_password: secret
+
+# DNS suffix to base DB.
+openldap_slapd_domain: nodomain
+
+# Organization.
+openldap_slapd_organization: nodomain
+
+# Database backend type.
+openldap_slapd_backend: MDB
+
+# Remove database when slapd is purged.
+openldap_slapd_purge_database: 'false'
+
+# Move old database when configuring.
+openldap_slapd_move_old_database: 'true'
+
+# Allow LDAPv2 protocol.
+openldap_slapd_allow_ldap_v2: 'false'
+
+#-------------------------------------------------------------------------------
+# Daemon Options
+#-------------------------------------------------------------------------------
+# Slapd services
+# Example:
+#openldap_slapd_services: "ldap://127.0.0.1:389/ ldapi:/// ldaps:///"
+openldap_slapd_services: "ldap:/// ldapi:///"
+
+#===============================================================================
+# Clean-up olcRootPW for Base DIT
+#===============================================================================
+# Ubuntu install uses two passwords for admin: 1) via olcRootDN and olcRootPW
+# attributes in database config; and 2) via entry cn=admin with an userPassword
+# attribute. This can be misleading as it would leave two passwords for
+# authenticating after a password update in one of them.
+# This setting removes the first, olcRootPW, to avoid ambiguity. Not reversible.
+openldap_rootpw_remove: false
+
+#===============================================================================
+# Config DIT Administrator
+#===============================================================================
+# Enable Config DIT administrator.
+openldap_configdit_admin_enable: false
+
+# Config DIT administrator common name (results cn=admin,cn=config).
+openldap_configdit_admin_cn: admin
+
+# Config DIT administrator password.
+openldap_configdit_admin_password: fakepass
+
+# Salt for Config DIT administrator password hash (sha-512).
+# Useful for idempotent operations.
+openldap_configdit_admin_salt: 72Axj5072FhtYzME
+
+#===============================================================================
+# Indexes
+#===============================================================================
+# Allowed values for `types` are "pres", "aprox", "eq", "sub", "subinitial", 
+# "subfinal" or "special" (comma separated list).
+# For `attr` see also the value "default" in OpenLDAP docs.
+# Example:
+# openldap_db_indexes:
+#   - attrs: uid,name
+#     types: eq,sub
+#   - attrs: entryCSN,entryUUID
+#     types: eq
+openldap_db_indexes: []
+
+#===============================================================================
+# Replication
+#===============================================================================
+# Be sure to set `openldap_configdit_admin_password` and
+# `openldap_configdit_admin_salt` for replication as config dit admin will be
+# setup no matter of `openldap_configdit_admin_enable` value.
+
+# Enable replication
+openldap_repl_enable: false
+
+# Replication servers.
+# Be sure to specify `openldap_slapd_services` with an URL with the same URL
+# used in here, otherwise there may be problem while starting the server with
+# the message "read_config: no serverID / URL match found. Check slapd -h
+# arguments".
+# Example:
+#openldap_repl_servers:
+#  - 1 ldap://ldap01.example.org
+#  - 2 ldap://ldap02.example.org
+openldap_repl_servers: []
+
+#===============================================================================
+# PhpLdapAdmin (PLA).
+#===============================================================================
+# Enable PhpLdapAdmin.
+openldap_pla_enable: false
+
+# Pre-populate admin login in web interface (@see PLA config.php)
+openldap_pla_show_admin_dn: false
+
+# Hide template warnings. Should be a string, not a boolean (@see PLA 
+# config.php).
+openldap_pla_hide_template_warning: true
+
+# Backup config file (@see PLA config.php).
+openldap_pla_backup_config_file: true
+
+#===============================================================================
+# Samba Support
+#===============================================================================
+# TODO: add via additional schemas
+# Enable Samba support
+# openldap_enable_samba_support: false
+
+#===============================================================================
+# Schemas
+#===============================================================================
+# Additional schemas
+# Example:
+#openldap_schemas_add:
+#  - file: samba.ldif
+#    name: samba
+#  - file: openssh-lpk-openldap.ldif
+#    name: openssh-lpk-openldap
+#  - file: ic_schema.ldif
+#    name: ic
+openldap_schemas_add: []
+
+#===============================================================================
+# Seed
+#===============================================================================
+# Enable initial seeding of database via ldif file.
+openldap_seed_enable: false
+
+# Seed file. Required if `openldap_seed_enable: true`.
+openldap_seed_ldif_file: ""
+
+# Continue operation on errors (@see man ldapadd for "-c").
+# Example:
+#openldap_seed_continue_on_errors: true
+openldap_seed_continue_on_errors: false
+
+# LDIF file generated on skipped entries due to errors.
+# Usefull in conjunction with `openldap_seed_continue_on_errors: true`
+# (@see man ldap add for "-S")
+# Example:
+#openldap_seed_skipped_entries_file: /tmp/{{ role_name }}_skipped.ldif
+openldap_seed_skipped_entries_file: ""
+
+# Seed output log file.
+# Output generated via `| tee`.
+# Example:
+# openldap_seed_output_log_file: "/tmp/{{ role_name }}_out.txt"
+openldap_seed_output_log_file: ""
+
+# Verbose output.
+# Adds `-v` to ldapadd.
+# Useful for debugging with `openldap_seed_output_log_file`.
+openldap_seed_ouput_verbose: false
+
+#===============================================================================
+# TLS/SSL
+#===============================================================================
+# Enable TLS/SSL.
+openldap_tls_enable: false
+
+# Certificate Authority certificate file.
+openldap_tls_ca_cert_file: ""
+
+# Server certificate file.
+openldap_tls_cert_file: ""
+
+# Server key file.
+openldap_tls_key_content: ""
+
+# Server certificate key file destination name.
+openldap_tls_key_filename: ""
+
+# Verify client (never | allow | try | demand).
+# @see TLSVerifyClient in https://www.openldap.org/doc/admin24/tls.html
+openldap_tls_verify_client: never
+
+#===============================================================================
+# Ldap.conf
+#===============================================================================
+# Enable templating of ldap.conf.
+openldap_ldap_conf_enable: false
+
+# Server URI(s).
+openldap_ldap_conf_uri: "ldap://localhost:389"
+
+# Search size limit.
+openldap_ldap_conf_sizelimit: 0
+
+# Search time limit.
+openldap_ldap_conf_timelimit: 0
+
+# Search timeout.
+openldap_ldap_conf_timeout: 0
+
+# Certificate check (never|allow|try|demand).
+openldap_ldap_conf_reqcert: demand

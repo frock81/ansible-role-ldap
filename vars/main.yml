@@ -1,0 +1,175 @@
+---
+# vars file for frock81.ldap
+
+#===============================================================================
+# Pre
+#===============================================================================
+# Role required packages.
+openldap_role_required_pkgs:
+  - debconf
+  - debconf-utils
+  - python-ldap
+
+#===============================================================================
+# Common: may be used by different sections.
+#===============================================================================
+# Temporary directory.
+openldap_temp_dir: /tmp
+
+# Administrator password for Base Directory Information Tree -- DIT.
+openldap_basedit_admin_password: "{{ openldap_slapd_admin_password }}"
+
+# Domain for Base DIT.
+openldap_basedit_domain: "{{ openldap_slapd_domain }}"
+
+# Organization for Base DIT.
+openldap_basedit_organization: "{{ openldap_slapd_organization }}"
+
+# Distinguished Name for Base DIT.
+openldap_basedit_dn: >-
+  dc={{ openldap_basedit_domain.split('.') | join(',dc=') }}
+
+# Admin DN for Base DIT.
+openldap_basedit_admin_dn: cn=admin,{{ openldap_basedit_dn }}
+
+#===============================================================================
+# Slapd
+#===============================================================================
+
+#-------------------------------------------------------------------------------
+# Debconf
+#-------------------------------------------------------------------------------
+openldap_slapd_config_items:
+  - question: slapd/password1
+    vtype: password
+    value: "{{ openldap_basedit_admin_password }}"
+  - question: slapd/password2
+    vtype: password
+    value: "{{ openldap_basedit_admin_password }}"
+  - question: slapd/domain
+    vtype: string
+    value:  "{{ openldap_slapd_domain }}"
+  - question: slapd/backend
+    vtype: select
+    value: "{{ openldap_slapd_backend }}"
+  - question: slapd/purge_database
+    vtype: boolean
+    value: "{{ openldap_slapd_purge_database }}"
+  - question: slapd/move_old_database
+    vtype: boolean
+    value: "{{ openldap_slapd_purge_database }}"
+  - question: slapd/allow_ldap_v2
+    vtype: boolean
+    value: "{{ openldap_slapd_allow_ldap_v2 }}"
+
+openldap_install_pkgs:
+  - slapd
+  - ldap-utils
+  - ldapscripts
+
+#-------------------------------------------------------------------------------
+# Daemon Options
+#-------------------------------------------------------------------------------
+openldap_slapd_daemon_options_file_template: slapd.j2
+openldap_slapd_daemon_options_file_dest: /etc/default/slapd
+openldap_slapd_daemon_options_file_owner: root
+openldap_slapd_daemon_options_file_group: root
+openldap_slapd_daemon_options_file_mode: '0644'
+openldap_slapd_user: openldap
+openldap_slapd_group: openldap
+
+#===============================================================================
+# Config DIT
+#===============================================================================
+openldap_configdit_dn: cn=config
+openldap_configdit_admin_dn: >-
+  cn={{ openldap_configdit_admin_cn }},{{ openldap_configdit_dn }}
+openldap_configdit_db_dn: olcDatabase={0}config,{{ openldap_configdit_dn }}
+openldap_configdit_admin_hash:  >-
+  {{ '{CRYPT}' + (openldap_configdit_admin_password | 
+  password_hash('sha512', openldap_configdit_admin_salt)) }}
+
+#===============================================================================
+# Replication
+#===============================================================================
+openldap_repl_module_dn: "cn=module{0},{{ openldap_configdit_dn }}"
+openldap_repl_module_attr: olcModuleLoad
+# Some sources use syncprov (the manual for example), others use syncprov.la.
+openldap_repl_module_value: syncprov
+openldap_repl_syncprov_attr: olcOverlay
+openldap_repl_syncprov_objectclasses:
+  - olcOverlayConfig
+  - olcSyncProvConfig
+openldap_repl_syncrepl_attr: olcSyncRepl
+
+#===============================================================================
+# olcRootPW for Base DIT
+#===============================================================================
+# Base DIT database DN.
+openldap_basedit_db_dn: olcDatabase={1}mdb,{{ openldap_configdit_dn }}
+
+#===============================================================================
+# PhpLdapAdmin (PLA)
+#===============================================================================
+openldap_pla_pkgs:
+  - phpldapadmin
+
+# PhpLdapAdmin template source.
+openldap_pla_config_src_file: config.php.j2
+openldap_pla_config_dest_file: /etc/phpldapadmin/config.php
+openldap_pla_config_owner: root
+openldap_pla_config_group: www-data
+openldap_pla_config_mode: '0640'
+openldap_pla_config_backup: "{{ openldap_pla_backup_config_file }}"
+
+#===============================================================================
+# Schemas
+#===============================================================================
+openldap_schemas_dir: /etc/ldap/schema
+openldap_schemas_file_owner: root
+openldap_schemas_file_group: root
+openldap_schemas_file_mode: '0644'
+
+#===============================================================================
+# Seed
+#===============================================================================
+openldap_seed_check_attr_name: cn
+openldap_seed_check_attr_value: seed
+openldap_seed_bind_pw: "-w \"{{ openldap_basedit_admin_password }}\""
+openldap_seed_continue: "{{ '-c' if openldap_seed_continue_on_errors else '' }}"
+openldap_seed_skipped: >-
+  {{ '-S "' + openldap_seed_skipped_entries_file 
+  + '"' if openldap_seed_skipped_entries_file else '' }}
+openldap_seed_ldif_path: "{{ openldap_temp_dir }}/{{ openldap_seed_ldif_file }}"
+openldap_seed_file: "-f \"{{ openldap_seed_ldif_path }}\""
+openldap_seed_verbose: "{{ '-c' if openldap_seed_ouput_verbose else '' }}"
+openldap_seed_tee: >-
+  {{ '| tee ' + openldap_seed_output_log_file 
+  if openldap_seed_output_log_file else '' }}
+openldap_seed_check_oc: applicationProcess
+openldap_seed_attributes:
+  description: Entry to evaluate initial seed of database
+
+#===============================================================================
+# TLS/SSL
+#===============================================================================
+openldap_tls_certs_dir: /etc/ssl/certs
+openldap_tls_certs_owner: root
+openldap_tls_certs_group: root
+openldap_tls_certs_mode: '0644'
+openldap_tls_keys_dir: /etc/ssl/private
+openldap_tls_keys_dir_group: ssl-cert
+openldap_tls_key_owner: "{{ openldap_slapd_user }}"
+# Permit to share with PLA/Apache.
+openldap_tls_key_group: "{{ openldap_tls_keys_dir_group }}"
+openldap_tls_key_mode: '0640'
+openldap_tls_template_ldif: tls.ldif
+
+#===============================================================================
+# Ldap.conf
+#===============================================================================
+openldap_ldap_conf_file_template: ldap.conf.j2
+openldap_ldap_conf_file_dest: /etc/ldap/ldap.conf
+openldap_ldap_conf_file_owner: root
+openldap_ldap_conf_file_group: root
+openldap_ldap_conf_file_mode: '0644'

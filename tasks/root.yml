@@ -1,0 +1,14 @@
+#===============================================================================
+# Administrator for Config DIT
+#===============================================================================
+- name: attribute olcRootDN and olcRootPW to config database
+  ldap_attr:
+    dn: "{{ openldap_configdit_db_dn }}"
+    name: "{{ item.name }}"
+    values: "{{ item.value }}"
+    state: exact
+  with_items:
+    - name: olcRootDN
+      value: "{{ openldap_configdit_admin_dn }}"
+    - name: olcRootPW
+      value: "{{ openldap_configdit_admin_hash }}"

@@ -1,0 +1,25 @@
+---
+#===============================================================================
+# Samba
+#===============================================================================
+- name: copy schema ldif file
+  copy:
+    src: "{{ item.file }}"
+    dest: "{{ openldap_schemas_dir }}"
+    owner: "{{ openldap_schemas_file_owner }}"
+    group: "{{ openldap_schemas_file_group }}"
+    mode: "{{ openldap_schemas_file_mode }}"
+
+- name: query for schema
+  shell: >
+    ldapsearch -LLL -Q -Y EXTERNAL -H ldapi:/// -s one -b "cn=schema,cn=config"
+    "(cn=*{{ item.name }})" dn | grep {{ item.name }}
+  register: result
+  ignore_errors: yes
+  changed_when: false
+
+- name: add schema
+  command: >-
+    ldapadd -Q -Y EXTERNAL -H ldapi:/// 
+    -f "{{ openldap_schemas_dir }}/{{ item.file }}"
+  when: result.rc != 0

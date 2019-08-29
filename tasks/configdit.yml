@@ -1,0 +1,20 @@
+---
+#===============================================================================
+# Administrator for Config DIT (cn=config, not to be confused with base DN 
+# admin)
+#===============================================================================
+# See also file `repl.yml`.
+- import_tasks: root.yml
+  when: openldap_configdit_admin_enable
+
+- name: remove config admin when config admin is not enabled
+  ldap_attr:
+    dn: "{{ openldap_configdit_db_dn }}"
+    name: "{{ item }}"
+    values: []
+    state: exact
+  with_items:
+    - olcRootDN
+    - olcRootPW
+  when: not openldap_configdit_admin_enable
+
